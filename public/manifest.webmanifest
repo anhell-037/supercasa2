@@ -1,0 +1,9 @@
+{
+  "name": "Super Casa",
+  "short_name": "Super Casa",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#081019",
+  "theme_color": "#0b0f17",
+  "icons": []
+}
