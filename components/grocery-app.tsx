@@ -147,6 +147,12 @@ export function GroceryApp() {
     publish();
   };
 
+  const deleteProduct = (productId: string) => {
+    if (!confirm("Delete this product from the list?")) return;
+    setProducts((current) => current.filter((product) => product.id !== productId));
+    publish();
+  };
+
   const resetEverything = () => {
     if (!confirm("Reset the list back to the seeded groceries?")) return;
     setStores(initialStores);
@@ -199,6 +205,21 @@ export function GroceryApp() {
         .category { display: grid; gap: 10px; }
         .list { display: grid; gap: 10px; }
         .row { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px; text-align: left; }
+        .row-main-button {
+          flex: 1;
+          border: 0;
+          background: transparent;
+          color: inherit;
+          padding: 0;
+          text-align: left;
+        }
+        .delete-button {
+          background: transparent;
+          color: #fda4af;
+          border: 1px solid rgba(253, 164, 175, 0.35);
+          padding: 10px 12px;
+          border-radius: 14px;
+        }
         .row-main { display: grid; gap: 6px; }
         .meta { color: var(--muted); font-size: 13px; }
         .badge { padding: 8px 12px; border-radius: 999px; color: #081019; font-weight: 700; }
@@ -262,18 +283,23 @@ export function GroceryApp() {
               {items.map((product) => {
                 const badge = statuses.find((item) => item.value === product.status)!;
                 return (
-                  <button key={product.id} className="row" onClick={() => cycleStatus(product)}>
-                    <div className="row-main">
-                      <strong>{product.name}</strong>
-                      <span className="meta">
-                        Updated by {product.updated_by} at{" "}
-                        {new Date(product.updated_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </span>
-                    </div>
+                  <div key={product.id} className="row">
+                    <button className="row-main-button" onClick={() => cycleStatus(product)}>
+                      <div className="row-main">
+                        <strong>{product.name}</strong>
+                        <span className="meta">
+                          Updated by {product.updated_by} at{" "}
+                          {new Date(product.updated_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                    </button>
                     <span className="badge" style={{ backgroundColor: badge.color }}>
                       {badge.label}
                     </span>
-                  </button>
+                    <button className="delete-button" onClick={() => deleteProduct(product.id)}>
+                      Delete
+                    </button>
+                  </div>
                 );
               })}
             </div>

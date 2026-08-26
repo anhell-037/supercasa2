@@ -14,13 +14,11 @@ export type Product = {
 };
 
 export const familyMembers: FamilyMember[] = [
-  { id: "ana", name: "Ana" },
-  { id: "beto", name: "Beto" },
-  { id: "carla", name: "Carla" },
-  { id: "diego", name: "Diego" },
-  { id: "elena", name: "Elena" },
-  { id: "fer", name: "Fer" },
-  { id: "gabriela", name: "Gabriela" },
+  { id: "angel", name: "Angel" },
+  { id: "ceci", name: "Ceci" },
+  { id: "jose", name: "Jose" },
+  { id: "erick", name: "Erick" },
+  { id: "mama", name: "Mama" },
 ];
 
 export const initialStores: Store[] = [
@@ -127,4 +125,3 @@ export const storageKeys = {
   stores: "supercasa-stores",
   products: "supercasa-products",
 };
-
