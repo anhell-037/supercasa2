@@ -35,22 +35,25 @@ function saveSnapshot(snapshot: Snapshot) {
 }
 
 export function GroceryApp() {
-  const [selectedName, setSelectedName] = useState("");
-  const [stores, setStores] = useState<Store[]>(initialStores);
-  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [selectedName, setSelectedName] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem(storageKeys.family) || "";
+  });
+  const [stores, setStores] = useState<Store[]>(() => {
+    if (typeof window === "undefined") return initialStores;
+    const stored = localStorage.getItem(storageKeys.stores);
+    return stored ? (JSON.parse(stored) as Store[]) : initialStores;
+  });
+  const [products, setProducts] = useState<Product[]>(() => {
+    if (typeof window === "undefined") return initialProducts;
+    const stored = localStorage.getItem(storageKeys.products);
+    return stored ? (JSON.parse(stored) as Product[]) : initialProducts;
+  });
   const [activeStoreId, setActiveStoreId] = useState(initialStores[0].id);
   const [filter, setFilter] = useState<"all" | "buy">("all");
   const [newProduct, setNewProduct] = useState("");
   const [newCategory, setNewCategory] = useState("");
   const [newStoreName, setNewStoreName] = useState("");
-
-  useEffect(() => {
-    const family = localStorage.getItem(storageKeys.family) || "";
-    setSelectedName(family);
-    const snapshot = readSnapshot();
-    setStores(snapshot.stores);
-    setProducts(snapshot.products);
-  }, []);
 
   useEffect(() => {
     const channel = new BroadcastChannel("supercasa-sync");
