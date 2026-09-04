@@ -220,6 +220,11 @@ export function GroceryApp() {
           padding: 10px 12px;
           border-radius: 14px;
         }
+        .status-button {
+          border: 0;
+          cursor: pointer;
+          font: inherit;
+        }
         .row-main { display: grid; gap: 6px; }
         .meta { color: var(--muted); font-size: 13px; }
         .badge { padding: 8px 12px; border-radius: 999px; color: #081019; font-weight: 700; }
@@ -293,9 +298,14 @@ export function GroceryApp() {
                         </span>
                       </div>
                     </button>
-                    <span className="badge" style={{ backgroundColor: badge.color }}>
+                    <button
+                      className="badge status-button"
+                      style={{ backgroundColor: badge.color }}
+                      onClick={() => cycleStatus(product)}
+                      aria-label={`Change ${product.name} status from ${badge.label}`}
+                    >
                       {badge.label}
-                    </span>
+                    </button>
                     <button className="delete-button" onClick={() => deleteProduct(product.id)}>
                       Delete
                     </button>
