@@ -124,4 +124,5 @@ export const storageKeys = {
   family: "supercasa-family-member",
   stores: "supercasa-stores",
   products: "supercasa-products",
+  memberProductStates: "supercasa-member-product-states",
 };

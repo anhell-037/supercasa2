@@ -17,21 +17,48 @@ const statuses: { value: Status; label: string; color: string }[] = [
   { value: "missing", label: "Missing", color: "var(--bad)" },
 ];
 
-type Snapshot = { stores: Store[]; products: Product[] };
+type MemberProductState = Pick<Product, "status" | "updated_by" | "updated_at">;
+type MemberProductStates = Record<string, Record<string, MemberProductState>>;
+type Snapshot = { stores: Store[]; products: Product[]; memberProductStates: MemberProductStates };
+
+function makeInitialMemberProductStates(products: Product[]): MemberProductStates {
+  return Object.fromEntries(
+    familyMembers.map((member) => [
+      member.name,
+      Object.fromEntries(
+        products.map((product) => [
+          product.id,
+          { status: product.status, updated_by: member.name, updated_at: product.updated_at },
+        ]),
+      ),
+    ]),
+  );
+}
+
+function readMemberProductStates(products: Product[]): MemberProductStates {
+  if (typeof window === "undefined") return makeInitialMemberProductStates(products);
+  const stored = localStorage.getItem(storageKeys.memberProductStates);
+  return stored ? (JSON.parse(stored) as MemberProductStates) : makeInitialMemberProductStates(products);
+}
 
 function readSnapshot(): Snapshot {
-  if (typeof window === "undefined") return { stores: initialStores, products: initialProducts };
+  if (typeof window === "undefined") {
+    return { stores: initialStores, products: initialProducts, memberProductStates: makeInitialMemberProductStates(initialProducts) };
+  }
   const stores = localStorage.getItem(storageKeys.stores);
   const products = localStorage.getItem(storageKeys.products);
+  const savedProducts = products ? (JSON.parse(products) as Product[]) : initialProducts;
   return {
     stores: stores ? (JSON.parse(stores) as Store[]) : initialStores,
-    products: products ? (JSON.parse(products) as Product[]) : initialProducts,
+    products: savedProducts,
+    memberProductStates: readMemberProductStates(savedProducts),
   };
 }
 
 function saveSnapshot(snapshot: Snapshot) {
   localStorage.setItem(storageKeys.stores, JSON.stringify(snapshot.stores));
   localStorage.setItem(storageKeys.products, JSON.stringify(snapshot.products));
+  localStorage.setItem(storageKeys.memberProductStates, JSON.stringify(snapshot.memberProductStates));
 }
 
 export function GroceryApp() {
@@ -49,6 +76,13 @@ export function GroceryApp() {
     const stored = localStorage.getItem(storageKeys.products);
     return stored ? (JSON.parse(stored) as Product[]) : initialProducts;
   });
+  const [memberProductStates, setMemberProductStates] = useState<MemberProductStates>(() => {
+    const storedProducts = typeof window === "undefined" ? initialProducts : (() => {
+      const stored = localStorage.getItem(storageKeys.products);
+      return stored ? (JSON.parse(stored) as Product[]) : initialProducts;
+    })();
+    return readMemberProductStates(storedProducts);
+  });
   const [activeStoreId, setActiveStoreId] = useState(initialStores[0].id);
   const [filter, setFilter] = useState<"all" | "buy">("all");
   const [newProduct, setNewProduct] = useState("");
@@ -62,17 +96,23 @@ export function GroceryApp() {
         const snapshot = readSnapshot();
         setStores(snapshot.stores);
         setProducts(snapshot.products);
+        setMemberProductStates(snapshot.memberProductStates);
       }
     };
     return () => channel.close();
   }, []);
 
   useEffect(() => {
-    saveSnapshot({ stores, products });
-  }, [stores, products]);
+    saveSnapshot({ stores, products, memberProductStates });
+  }, [stores, products, memberProductStates]);
 
   const currentStore = stores.find((store) => store.id === activeStoreId) ?? stores[0];
-  const visibleProducts = products
+  const activeMemberName = selectedName || familyMembers[0].name;
+  const productsForMember = products.map((product) => ({
+    ...product,
+    ...(memberProductStates[activeMemberName]?.[product.id] ?? {}),
+  }));
+  const visibleProducts = productsForMember
     .filter((product) => product.store_id === currentStore?.id)
     .filter((product) => (filter === "all" ? true : product.status !== "have"));
 
@@ -104,11 +144,15 @@ export function GroceryApp() {
 
   const updateStatus = (productId: string, status: Status) => {
     ensureName();
-    const updated_by = selectedName || familyMembers[0].name;
+    const updated_by = activeMemberName;
     const updated_at = new Date().toISOString();
-    setProducts((current) =>
-      current.map((product) => (product.id === productId ? { ...product, status, updated_by, updated_at } : product)),
-    );
+    setMemberProductStates((current) => ({
+      ...current,
+      [activeMemberName]: {
+        ...(current[activeMemberName] ?? {}),
+        [productId]: { status, updated_by, updated_at },
+      },
+    }));
     publish();
   };
 
@@ -142,6 +186,15 @@ export function GroceryApp() {
       updated_at: new Date().toISOString(),
     };
     setProducts((current) => [...current, product]);
+    setMemberProductStates((current) => ({
+      ...current,
+      ...Object.fromEntries(
+        familyMembers.map((member) => [
+          member.name,
+          { ...(current[member.name] ?? {}), [product.id]: { status: "need_to_buy", updated_by: member.name, updated_at: product.updated_at } },
+        ]),
+      ),
+    }));
     setNewProduct("");
     setNewCategory("");
     publish();
@@ -157,8 +210,10 @@ export function GroceryApp() {
     if (!confirm("Reset the list back to the seeded groceries?")) return;
     setStores(initialStores);
     setProducts(initialProducts);
+    setMemberProductStates(makeInitialMemberProductStates(initialProducts));
     localStorage.removeItem(storageKeys.stores);
     localStorage.removeItem(storageKeys.products);
+    localStorage.removeItem(storageKeys.memberProductStates);
     publish();
   };
 
